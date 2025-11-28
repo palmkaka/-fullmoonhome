@@ -199,9 +199,25 @@ export default function TenantInvoicesPage() {
                                             </Button>
                                         )}
                                         {invoice.payment_proof_url && (
-                                            <Button variant="outline" onClick={() => window.open(invoice.payment_proof_url!, '_blank')}>
-                                                <FileText className="mr-2 h-4 w-4" /> ดูสลิปที่แนบ
-                                            </Button>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline">
+                                                        <FileText className="mr-2 h-4 w-4" /> ดูสลิปที่แนบ
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="max-w-3xl">
+                                                    <DialogHeader>
+                                                        <DialogTitle>หลักฐานการโอนเงิน</DialogTitle>
+                                                    </DialogHeader>
+                                                    <div className="flex justify-center p-4">
+                                                        <img
+                                                            src={invoice.payment_proof_url}
+                                                            alt="Payment Slip"
+                                                            className="max-w-full h-auto rounded-lg shadow-lg"
+                                                        />
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
                                         )}
                                     </div>
                                 </div>

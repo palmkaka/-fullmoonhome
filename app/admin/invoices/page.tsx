@@ -345,8 +345,11 @@ export default function InvoicesPage() {
                                                         <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> แจ้งชำระเงิน
                                                     </DropdownMenuItem>
                                                 )}
-                                                {invoice.status === 'paid' && (
-                                                    <DropdownMenuItem onClick={() => window.open(invoice.payment_proof_url || '#', '_blank')} disabled={!invoice.payment_proof_url}>
+                                                {invoice.status === 'paid' && invoice.payment_proof_url && (
+                                                    <DropdownMenuItem onClick={() => {
+                                                        setSelectedSlipUrl(invoice.payment_proof_url!);
+                                                        setIsSlipDialogOpen(true);
+                                                    }}>
                                                         <FileText className="mr-2 h-4 w-4" /> ดูสลิป
                                                     </DropdownMenuItem>
                                                 )}
