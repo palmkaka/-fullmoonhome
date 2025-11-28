@@ -103,7 +103,7 @@ export default function RoomsPage() {
 
             if (editingRoom) {
                 // Update
-                await updateDoc(doc(db, 'rooms', editingRoom.room_number), roomData);
+                await updateDoc(doc(db, 'rooms', editingRoom.room_number), roomData as any);
             } else {
                 // Create (Check if exists first?)
                 // For simplicity, we just setDoc which overwrites if exists, but usually we want to prevent overwrite of different ID.
