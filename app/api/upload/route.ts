@@ -13,8 +13,16 @@ export async function POST(req: NextRequest) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
 
-        // Use the default bucket configured in admin.ts
-        const bucket = adminStorage.bucket();
+        // Explicitly handle bucket name for robustness
+        let bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+
+        // Sanitize bucket name (remove gs:// prefix)
+        if (bucketName) {
+            bucketName = bucketName.replace(/^gs:\/\//, '').trim();
+        }
+
+        // Use the explicit bucket name if available, otherwise default
+        const bucket = bucketName ? adminStorage.bucket(bucketName) : adminStorage.bucket();
         const fileRef = bucket.file(path);
 
         await fileRef.save(buffer, {
@@ -32,10 +40,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ url });
     } catch (error: any) {
         console.error('Upload error:', error);
-        // Include bucket name in error message for debugging
         const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'unknown';
+        // Added (v3) to verify deployment update
         return NextResponse.json({
-            error: `Upload failed to bucket '${bucketName}'. Details: ${error.message}`
+            error: `(v3) Upload failed to bucket '${bucketName}'. Details: ${error.message}`
         }, { status: 500 });
     }
 }
