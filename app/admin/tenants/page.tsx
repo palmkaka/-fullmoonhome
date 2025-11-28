@@ -158,7 +158,7 @@ export default function TenantsPage() {
                 }
             } catch (error) {
                 console.error("Error deleting tenant:", error);
-                alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+                alert(`เกิดข้อผิดพลาดในการลบข้อมูล: ${(error as Error).message}`);
             }
         }
     };
