@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase/client';
 import { useUserStore } from '@/lib/store/user-store';
 import { Invoice, Tenant, HostelSettings } from '@/types/schema';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import {
     DialogTrigger,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Upload, FileText, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function TenantInvoicesPage() {
     const { dbUser } = useUserStore();
@@ -29,7 +30,8 @@ export default function TenantInvoicesPage() {
     // Upload Slip State
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
-    const [slipUrl, setSlipUrl] = useState(''); // In real app, use Firebase Storage. Here just text URL or mock.
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (!dbUser) return;
@@ -42,11 +44,9 @@ export default function TenantInvoicesPage() {
         });
 
         // Fetch Invoices
-        // Assuming dbUser.uid is tenant_id for now as per previous logic
         const q = query(
             collection(db, 'invoices'),
             where('tenant_id', '==', dbUser.uid)
-            // orderBy('created_at', 'desc') // Requires index, let's skip order for now or do client side sort
         );
 
         const invoicesUnsub = onSnapshot(q, (snapshot) => {
@@ -66,22 +66,37 @@ export default function TenantInvoicesPage() {
         };
     }, [dbUser]);
 
-    const handleUploadSlip = async () => {
-        if (!selectedInvoice || !slipUrl) return;
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
 
+    const handleUploadSlip = async () => {
+        if (!selectedInvoice || !selectedFile) return;
+
+        setUploading(true);
         try {
+            const fileExt = selectedFile.name.split('.').pop();
+            const fileName = `payment_slips/${selectedInvoice.invoice_id}_${Date.now()}.${fileExt}`;
+            const storageRef = ref(storage, fileName);
+
+            await uploadBytes(storageRef, selectedFile);
+            const downloadURL = await getDownloadURL(storageRef);
+
             await updateDoc(doc(db, 'invoices', selectedInvoice.invoice_id), {
-                payment_proof_url: slipUrl,
-                // We don't change status to 'paid' yet, admin must verify.
-                // But maybe we can have a 'verifying' status? Schema only has pending/paid/overdue.
-                // Let's keep it 'pending' but Admin will see the slip icon.
+                payment_proof_url: downloadURL,
+                status: 'pending' // Ensure status is pending for review
             });
+
             setIsUploadOpen(false);
-            setSlipUrl('');
+            setSelectedFile(null);
             alert("อัปโหลดสลิปเรียบร้อย กรุณารอเจ้าหน้าที่ตรวจสอบ");
         } catch (error) {
             console.error("Error uploading slip:", error);
-            alert("เกิดข้อผิดพลาด");
+            alert("เกิดข้อผิดพลาดในการอัปโหลดสลิป");
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -170,6 +185,7 @@ export default function TenantInvoicesPage() {
                                             <Button onClick={() => {
                                                 setSelectedInvoice(invoice);
                                                 setIsUploadOpen(true);
+                                                setSelectedFile(null);
                                             }}>
                                                 <Upload className="mr-2 h-4 w-4" /> แจ้งโอนเงิน
                                             </Button>
@@ -199,23 +215,27 @@ export default function TenantInvoicesPage() {
                             <Input value={`฿${selectedInvoice?.total_amount.toLocaleString()}`} disabled />
                         </div>
                         <div className="space-y-2">
-                            <Label>ลิงก์รูปสลิป (URL)</Label>
+                            <Label>แนบหลักฐานการโอนเงิน (รูปภาพ)</Label>
                             <Input
-                                placeholder="https://..."
-                                value={slipUrl}
-                                onChange={(e) => setSlipUrl(e.target.value)}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
                             />
                             <p className="text-xs text-muted-foreground">
-                                *ในเวอร์ชันจริงจะเป็นการอัปโหลดไฟล์รูปภาพ
+                                รองรับไฟล์รูปภาพ .jpg, .png
                             </p>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsUploadOpen(false)}>ยกเลิก</Button>
-                        <Button onClick={handleUploadSlip} disabled={!slipUrl}>ยืนยัน</Button>
+                        <Button variant="outline" onClick={() => setIsUploadOpen(false)} disabled={uploading}>ยกเลิก</Button>
+                        <Button onClick={handleUploadSlip} disabled={!selectedFile || uploading}>
+                            {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {uploading ? 'กำลังอัปโหลด...' : 'ยืนยัน'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
     );
 }
+
