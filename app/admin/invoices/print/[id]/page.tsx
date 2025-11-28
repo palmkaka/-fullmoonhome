@@ -82,8 +82,7 @@ export default function PrintInvoicePage() {
                     <div>
                         <h1 className="text-2xl font-bold mb-2">{settings.name}</h1>
                         <p className="text-sm text-gray-600 whitespace-pre-line">{settings.address}</p>
-                        <p className="text-sm text-gray-600 mt-1">โทร: {tenant?.phone_number || '-'}</p>
-                        {/* Note: Ideally hostel phone, but using tenant phone as placeholder or maybe hardcoded admin phone if available */}
+                        <p className="text-sm text-gray-600 mt-1">โทร: {settings.phone_number || '-'}</p>
                     </div>
                     <div className="text-right">
                         <h2 className="text-xl font-bold text-gray-800">ใบแจ้งหนี้ / Invoice</h2>

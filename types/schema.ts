@@ -11,6 +11,7 @@ export interface User {
 export interface HostelSettings {
     name: string;
     address: string;
+    phone_number?: string;
     water_unit_price: number;
     electric_unit_price: number;
     water_calculation_method: 'unit' | 'person'; // 'unit' = per meter unit, 'person' = flat rate per person

@@ -99,6 +99,14 @@ export default function SettingsPage() {
                                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label>เบอร์โทรศัพท์</Label>
+                            <Input
+                                value={settings.phone_number || ''}
+                                onChange={(e) => setSettings({ ...settings, phone_number: e.target.value })}
+                                placeholder="08x-xxx-xxxx"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 
