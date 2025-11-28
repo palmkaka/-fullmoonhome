@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper function to check if user is the owner of the document
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAdmin() || isOwner(userId);
+      allow write: if isAdmin();
+    }
+
+    // Hostel Settings (Config)
+    match /hostel_settings/{docId} {
+      allow read: if request.auth != null; // Tenants can read
+      allow write: if isAdmin();
+    }
+
+    // Rooms
+    match /rooms/{roomId} {
+      allow read: if request.auth != null; // Tenants might need to see room info? Or just admin? 
+      // Requirement: Tenants Cannot modify rooms. 
+      // Requirement: Tenants Can READ invoices/meter_readings related to their room_id.
+      // Implicitly, tenants might need to read room details? 
+      // Let's allow read for auth users for now, or restrict to admin?
+      // "Tenants... Cannot modify rooms". Doesn't explicitly say they can read.
+      // But usually they need to know their room details.
+      // Let's allow read for authenticated users.
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Tenants
+    match /tenants/{tenantId} {
+      allow read: if isAdmin() || isOwner(tenantId) || resource.data.tenant_id == request.auth.uid;
+      allow write: if isAdmin();
+    }
+
+    // Meter Readings
+    match /meter_readings/{readingId} {
+      allow read: if isAdmin() || 
+        (request.auth != null && resource.data.room_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.current_room_id) ||
+        // Note: The user schema doesn't have current_room_id, the TENANT schema does.
+        // But the user ID is the same.
+        // Let's check if the reading belongs to the user's room.
+        // This is tricky without a direct link in auth token or user doc.
+        // Requirement: "Can READ invoices and meter_readings related to their room_id or tenant_id."
+        // Meter reading has room_id.
+        // We need to know the user's room_id.
+        // We can get it from the 'tenants' collection.
+        (request.auth != null && resource.data.room_id == get(/databases/$(database)/documents/tenants/$(request.auth.uid)).data.current_room_id);
+      allow write: if isAdmin();
+    }
+
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin() || 
+        (request.auth != null && resource.data.tenant_id == request.auth.uid);
+      
+      allow update: if isAdmin() || 
+        (request.auth != null && resource.data.tenant_id == request.auth.uid && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['payment_proof_url', 'paid_at']) && // Allow paid_at? Maybe not. Just proof.
+         // Requirement: "Can UPDATE invoices ONLY to upload payment_proof_url (cannot change amounts)."
+         // Usually paid_at is set by admin or system.
+         // Let's restrict to payment_proof_url.
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['payment_proof_url']));
+         
+      allow create, delete: if isAdmin();
+    }
+
+    // Maintenance Requests
+    match /maintenance_requests/{requestId} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.tenant_id == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.tenant_id == request.auth.uid;
+      allow update: if isAdmin() || (request.auth != null && resource.data.tenant_id == request.auth.uid); // Tenants might update status? No, usually just details.
+      // Requirement: "Can READ/WRITE maintenance_requests only if auth.uid == request.resource.data.tenant_id"
+      // This implies create and update.
+      allow delete: if isAdmin();
+    }
+  }
+}
