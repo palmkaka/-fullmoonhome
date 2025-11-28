@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { Invoice, Room, Tenant, HostelSettings } from '@/types/schema';
 import { Loader2 } from 'lucide-react';
 
-export default function PrintInvoicePage({ params }: { params: { id: string } }) {
+export default function PrintInvoicePage() {
+    const params = useParams();
+    const id = params?.id as string;
+
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [tenant, setTenant] = useState<Tenant | null>(null);
     const [room, setRoom] = useState<Room | null>(null);
@@ -15,11 +19,15 @@ export default function PrintInvoicePage({ params }: { params: { id: string } })
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!id) return;
+
             try {
+                console.log("Fetching invoice with ID:", id);
                 // 1. Fetch Invoice
-                const invoiceSnap = await getDoc(doc(db, 'invoices', params.id));
+                const invoiceSnap = await getDoc(doc(db, 'invoices', id));
                 if (!invoiceSnap.exists()) {
-                    alert("ไม่พบข้อมูลใบแจ้งหนี้");
+                    console.error("Invoice document not found for ID:", id);
+                    setLoading(false);
                     return;
                 }
                 const invoiceData = invoiceSnap.data() as Invoice;
@@ -44,7 +52,7 @@ export default function PrintInvoicePage({ params }: { params: { id: string } })
         };
 
         fetchData();
-    }, [params.id]);
+    }, [id]);
 
     useEffect(() => {
         if (!loading && invoice && settings) {
