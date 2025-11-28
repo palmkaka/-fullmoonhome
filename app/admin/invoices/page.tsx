@@ -326,7 +326,7 @@ export default function InvoicesPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => alert("ฟีเจอร์พิมพ์บิลจะมาเร็วๆนี้")}>
+                                                <DropdownMenuItem onClick={() => window.open(`/admin/invoices/print/${invoice.invoice_id}`, '_blank')}>
                                                     <Printer className="mr-2 h-4 w-4" /> พิมพ์บิล
                                                 </DropdownMenuItem>
                                                 {invoice.status === 'pending' && (
