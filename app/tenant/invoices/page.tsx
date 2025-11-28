@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase/client';
+import { db } from '@/lib/firebase/client';
 import { useUserStore } from '@/lib/store/user-store';
 import { Invoice, Tenant, HostelSettings } from '@/types/schema';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -84,22 +83,36 @@ export default function TenantInvoicesPage() {
 
             const fileExt = 'jpg'; // Always jpeg after compression
             const fileName = `payment_slips/${selectedInvoice.invoice_id}_${Date.now()}.${fileExt}`;
-            const storageRef = ref(storage, fileName);
 
-            await uploadBytes(storageRef, compressedBlob);
-            const downloadURL = await getDownloadURL(storageRef);
+            // Create FormData
+            const formData = new FormData();
+            formData.append('file', compressedBlob, fileName);
+            formData.append('path', fileName);
+
+            // Upload via API
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const { url } = await res.json();
 
             await updateDoc(doc(db, 'invoices', selectedInvoice.invoice_id), {
-                payment_proof_url: downloadURL,
+                payment_proof_url: url,
                 status: 'pending' // Ensure status is pending for review
             });
 
             setIsUploadOpen(false);
             setSelectedFile(null);
             alert("อัปโหลดสลิปเรียบร้อย กรุณารอเจ้าหน้าที่ตรวจสอบ");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error uploading slip:", error);
-            alert("เกิดข้อผิดพลาดในการอัปโหลดสลิป");
+            alert(`เกิดข้อผิดพลาดในการอัปโหลดสลิป: ${error.message}`);
         } finally {
             setUploading(false);
         }
