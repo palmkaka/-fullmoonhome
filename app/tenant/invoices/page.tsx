@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { Upload, FileText, CheckCircle2, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 
+import { compressImage } from '@/lib/utils/image-compression';
+
 export default function TenantInvoicesPage() {
     const { dbUser } = useUserStore();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -77,11 +79,14 @@ export default function TenantInvoicesPage() {
 
         setUploading(true);
         try {
-            const fileExt = selectedFile.name.split('.').pop();
+            // Compress Image
+            const compressedBlob = await compressImage(selectedFile);
+
+            const fileExt = 'jpg'; // Always jpeg after compression
             const fileName = `payment_slips/${selectedInvoice.invoice_id}_${Date.now()}.${fileExt}`;
             const storageRef = ref(storage, fileName);
 
-            await uploadBytes(storageRef, selectedFile);
+            await uploadBytes(storageRef, compressedBlob);
             const downloadURL = await getDownloadURL(storageRef);
 
             await updateDoc(doc(db, 'invoices', selectedInvoice.invoice_id), {
