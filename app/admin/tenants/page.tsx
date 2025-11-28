@@ -180,8 +180,21 @@ export default function TenantsPage() {
     };
 
     const handleDelete = async (tenantId: string, roomId: string) => {
-        if (confirm("คุณแน่ใจหรือไม่ที่จะลบข้อมูลผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องทั้งหมดจะถูกลบด้วย")) {
+        if (confirm("คุณแน่ใจหรือไม่ที่จะลบข้อมูลผู้เช่านี้?\n\nการลบจะทำให้:\n- ผู้เช่าไม่สามารถเข้าสู่ระบบได้อีก\n- ข้อมูลทั้งหมดจะถูกลบอย่างถาวร\n- บิลค่าเช่าทั้งหมดจะถูกลบ\n- ห้องจะกลับเป็นสถานะว่าง")) {
             try {
+                // 0. Delete Firebase Auth Account first
+                const authResponse = await fetch('/api/delete-tenant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_id: tenantId }),
+                });
+
+                if (!authResponse.ok) {
+                    const errorData = await authResponse.json();
+                    console.warn('Auth deletion warning:', errorData);
+                    // Continue even if auth deletion fails (user might not exist)
+                }
+
                 const batch = writeBatch(db);
 
                 // 1. Delete Tenant
@@ -202,6 +215,8 @@ export default function TenantsPage() {
                 });
 
                 await batch.commit();
+
+                alert('ลบผู้เช่าเรียบร้อยแล้ว');
             } catch (error) {
                 console.error("Error deleting tenant:", error);
                 alert(`เกิดข้อผิดพลาดในการลบข้อมูล: ${(error as Error).message}`);
