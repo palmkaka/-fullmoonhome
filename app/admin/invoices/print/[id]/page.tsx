@@ -63,7 +63,8 @@ export default function PrintInvoicePage({ params }: { params: { id: string } })
         );
     }
 
-    if (!invoice || !settings) return <div>Error loading invoice</div>;
+    if (!invoice) return <div className="p-8 text-red-500">Error: Invoice not found</div>;
+    if (!settings) return <div className="p-8 text-red-500">Error: Hostel Settings not found (Please run seed script or check database)</div>;
 
     return (
         <div className="bg-white min-h-screen p-8 text-black print:p-0">
