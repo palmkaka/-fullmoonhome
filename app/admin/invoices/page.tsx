@@ -33,7 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { MoreHorizontal, Plus, FileText, CheckCircle2, XCircle, Search, Printer } from 'lucide-react';
+import { MoreHorizontal, Plus, FileText, CheckCircle2, XCircle, Search, Printer, Trash2 } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -246,6 +246,17 @@ export default function InvoicesPage() {
         }
     };
 
+    const handleDeleteInvoice = async (invoiceId: string) => {
+        if (confirm("คุณแน่ใจหรือไม่ที่จะลบใบแจ้งหนี้นี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) {
+            try {
+                await deleteDoc(doc(db, 'invoices', invoiceId));
+            } catch (error) {
+                console.error("Error deleting invoice:", error);
+                alert("เกิดข้อผิดพลาดในการลบใบแจ้งหนี้");
+            }
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'paid': return <Badge className="bg-green-500">ชำระแล้ว</Badge>;
@@ -339,6 +350,13 @@ export default function InvoicesPage() {
                                                         <FileText className="mr-2 h-4 w-4" /> ดูสลิป
                                                     </DropdownMenuItem>
                                                 )}
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="text-red-600"
+                                                    onClick={() => handleDeleteInvoice(invoice.invoice_id)}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" /> ลบ
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

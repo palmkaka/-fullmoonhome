@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, Timestamp, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { Tenant, Room } from '@/types/schema';
 import { Button } from '@/components/ui/button';
@@ -70,7 +70,23 @@ export default function TenantsPage() {
 
     const [formData, setFormData] = useState(initialFormState);
 
-    // ... (useEffect remains same)
+    // Real-time Fetch
+    useEffect(() => {
+        const unsubTenants = onSnapshot(collection(db, 'tenants'), (snapshot) => {
+            const data = snapshot.docs.map(doc => doc.data() as Tenant);
+            setTenants(data);
+            setLoading(false);
+        });
+
+        const unsubRooms = onSnapshot(collection(db, 'rooms'), (snapshot) => {
+            setRooms(snapshot.docs.map(doc => doc.data() as Room));
+        });
+
+        return () => {
+            unsubTenants();
+            unsubRooms();
+        };
+    }, []);
 
     const handleOpenDialog = (tenant?: Tenant) => {
         if (tenant) {
@@ -163,11 +179,43 @@ export default function TenantsPage() {
         }
     };
 
-    // ... (handleDelete remains same)
+    const handleDelete = async (tenantId: string, roomId: string) => {
+        if (confirm("คุณแน่ใจหรือไม่ที่จะลบข้อมูลผู้เช่านี้? ข้อมูลบิลที่เกี่ยวข้องทั้งหมดจะถูกลบด้วย")) {
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Delete Tenant
+                const tenantRef = doc(db, 'tenants', tenantId);
+                batch.delete(tenantRef);
+
+                // 2. Free up room
+                if (roomId) {
+                    const roomRef = doc(db, 'rooms', roomId);
+                    batch.update(roomRef, { status: 'vacant', current_tenant_id: null });
+                }
+
+                // 3. Delete associated invoices
+                const invoicesQuery = query(collection(db, 'invoices'), where('tenant_id', '==', tenantId));
+                const invoiceDocs = await getDocs(invoicesQuery);
+                invoiceDocs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+            } catch (error) {
+                console.error("Error deleting tenant:", error);
+                alert(`เกิดข้อผิดพลาดในการลบข้อมูล: ${(error as Error).message}`);
+            }
+        }
+    };
+
+    const filteredTenants = tenants.filter(t =>
+        t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.current_room_id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="space-y-6">
-            {/* ... (Header and Search remain same) */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">จัดการผู้เช่า</h2>
@@ -192,7 +240,6 @@ export default function TenantsPage() {
 
             <div className="border rounded-md">
                 <Table>
-                    {/* ... (Table Header and Body remain same) */}
                     <TableHeader>
                         <TableRow>
                             <TableHead>ชื่อ-นามสกุล</TableHead>
