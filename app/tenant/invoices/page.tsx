@@ -74,186 +74,150 @@ export default function TenantInvoicesPage() {
     };
 
     const handleUploadSlip = async () => {
-        if (!selectedInvoice || !selectedFile) return;
+    } catch (error: any) {
+        console.error("Error uploading slip:", error);
+        alert(`เกิดข้อผิดพลาดในการอัปโหลดสลิป: ${error.message}`);
+    } finally {
+        setUploading(false);
+    }
+};
 
-        setUploading(true);
-        try {
-            // Compress Image
-            const compressedBlob = await compressImage(selectedFile);
+const getStatusBadge = (status: string, hasSlip: boolean) => {
+    if (status === 'paid') return <Badge className="bg-green-500">ชำระแล้ว</Badge>;
+    if (status === 'overdue') return <Badge className="bg-red-500">เกินกำหนด</Badge>;
+    if (status === 'pending') {
+        if (hasSlip) return <Badge className="bg-blue-500">รอตรวจสอบ</Badge>;
+        return <Badge className="bg-yellow-500 text-black">รอชำระ</Badge>;
+    }
+    return <Badge variant="outline">{status}</Badge>;
+};
 
-            const fileExt = 'jpg'; // Always jpeg after compression
-            const fileName = `payment_slips/${selectedInvoice.invoice_id}_${Date.now()}.${fileExt}`;
+if (loading) return <div className="text-center py-10">กำลังโหลด...</div>;
 
-            // Create FormData
-            const formData = new FormData();
-            formData.append('file', compressedBlob, fileName);
-            formData.append('path', fileName);
+return (
+    <div className="space-y-6">
+        <div>
+            <h2 className="text-2xl font-bold tracking-tight">บิลค่าเช่าและประวัติการชำระเงิน</h2>
+            <p className="text-muted-foreground">ตรวจสอบยอดค้างชำระและแจ้งโอนเงิน</p>
+        </div>
 
-            // Upload via API
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || 'Upload failed');
-            }
-
-            const { url } = await res.json();
-
-            await updateDoc(doc(db, 'invoices', selectedInvoice.invoice_id), {
-                payment_proof_url: url,
-                status: 'pending' // Ensure status is pending for review
-            });
-
-            setIsUploadOpen(false);
-            setSelectedFile(null);
-            alert("อัปโหลดสลิปเรียบร้อย กรุณารอเจ้าหน้าที่ตรวจสอบ");
-        } catch (error: any) {
-            console.error("Error uploading slip:", error);
-            alert(`เกิดข้อผิดพลาดในการอัปโหลดสลิป: ${error.message}`);
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const getStatusBadge = (status: string, hasSlip: boolean) => {
-        if (status === 'paid') return <Badge className="bg-green-500">ชำระแล้ว</Badge>;
-        if (status === 'overdue') return <Badge className="bg-red-500">เกินกำหนด</Badge>;
-        if (status === 'pending') {
-            if (hasSlip) return <Badge className="bg-blue-500">รอตรวจสอบ</Badge>;
-            return <Badge className="bg-yellow-500 text-black">รอชำระ</Badge>;
-        }
-        return <Badge variant="outline">{status}</Badge>;
-    };
-
-    if (loading) return <div className="text-center py-10">กำลังโหลด...</div>;
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight">บิลค่าเช่าและประวัติการชำระเงิน</h2>
-                <p className="text-muted-foreground">ตรวจสอบยอดค้างชำระและแจ้งโอนเงิน</p>
-            </div>
-
-            {/* Bank Info Card */}
-            {settings && (
-                <Card className="bg-primary/5 border-primary/20">
-                    <CardHeader>
-                        <CardTitle className="text-base text-primary">ช่องทางการชำระเงิน</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm">
-                            <div>
-                                <span className="text-muted-foreground">ธนาคาร:</span>
-                                <span className="font-medium ml-2">{settings.bank_account_info.bank_name}</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground">เลขบัญชี:</span>
-                                <span className="font-medium ml-2 text-lg">{settings.bank_account_info.account_number}</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground">ชื่อบัญชี:</span>
-                                <span className="font-medium ml-2">{settings.bank_account_info.account_name}</span>
-                            </div>
+        {/* Bank Info Card */}
+        {settings && (
+            <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                    <CardTitle className="text-base text-primary">ช่องทางการชำระเงิน</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm">
+                        <div>
+                            <span className="text-muted-foreground">ธนาคาร:</span>
+                            <span className="font-medium ml-2">{settings.bank_account_info.bank_name}</span>
                         </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            <div className="space-y-4">
-                {invoices.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">ไม่พบรายการบิล</div>
-                ) : (
-                    invoices.map((invoice) => (
-                        <Card key={invoice.invoice_id} className={invoice.status === 'pending' ? 'border-l-4 border-l-yellow-500' : ''}>
-                            <CardContent className="p-6">
-                                <div className="flex flex-col md:flex-row justify-between gap-4">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-lg">
-                                                รอบเดือน {invoice.month}/{invoice.year}
-                                            </h3>
-                                            {getStatusBadge(invoice.status, !!invoice.payment_proof_url)}
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            เลขที่บิล: {invoice.invoice_id} | ครบกำหนด: {invoice.due_date.toDate().toLocaleDateString('th-TH')}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-col items-end gap-1">
-                                        <p className="text-sm text-muted-foreground">ยอดรวมทั้งสิ้น</p>
-                                        <p className="text-2xl font-bold text-primary">฿{invoice.total_amount.toLocaleString()}</p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="text-sm space-y-1">
-                                        {invoice.items.map((item, idx) => (
-                                            <div key={idx} className="flex justify-between">
-                                                <span className="text-muted-foreground">{item.name}</span>
-                                                <span>฿{item.amount.toLocaleString()}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex items-end justify-end">
-                                        {invoice.status === 'pending' && !invoice.payment_proof_url && (
-                                            <Button onClick={() => {
-                                                setSelectedInvoice(invoice);
-                                                setIsUploadOpen(true);
-                                                setSelectedFile(null);
-                                            }}>
-                                                <Upload className="mr-2 h-4 w-4" /> แจ้งโอนเงิน
-                                            </Button>
-                                        )}
-                                        {invoice.payment_proof_url && (
-                                            <Button variant="outline" onClick={() => window.open(invoice.payment_proof_url!, '_blank')}>
-                                                <FileText className="mr-2 h-4 w-4" /> ดูสลิปที่แนบ
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
-
-            {/* Upload Slip Dialog */}
-            <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>แจ้งโอนเงิน</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>ยอดโอน</Label>
-                            <Input value={`฿${selectedInvoice?.total_amount.toLocaleString()}`} disabled />
+                        <div>
+                            <span className="text-muted-foreground">เลขบัญชี:</span>
+                            <span className="font-medium ml-2 text-lg">{settings.bank_account_info.account_number}</span>
                         </div>
-                        <div className="space-y-2">
-                            <Label>แนบหลักฐานการโอนเงิน (รูปภาพ)</Label>
-                            <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                รองรับไฟล์รูปภาพ .jpg, .png
-                            </p>
+                        <div>
+                            <span className="text-muted-foreground">ชื่อบัญชี:</span>
+                            <span className="font-medium ml-2">{settings.bank_account_info.account_name}</span>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsUploadOpen(false)} disabled={uploading}>ยกเลิก</Button>
-                        <Button onClick={handleUploadSlip} disabled={!selectedFile || uploading}>
-                            {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {uploading ? 'กำลังอัปโหลด...' : 'ยืนยัน'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                </CardContent>
+            </Card>
+        )}
+
+        <div className="space-y-4">
+            {invoices.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">ไม่พบรายการบิล</div>
+            ) : (
+                invoices.map((invoice) => (
+                    <Card key={invoice.invoice_id} className={invoice.status === 'pending' ? 'border-l-4 border-l-yellow-500' : ''}>
+                        <CardContent className="p-6">
+                            <div className="flex flex-col md:flex-row justify-between gap-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-lg">
+                                            รอบเดือน {invoice.month}/{invoice.year}
+                                        </h3>
+                                        {getStatusBadge(invoice.status, !!invoice.payment_proof_url)}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        เลขที่บิล: {invoice.invoice_id} | ครบกำหนด: {invoice.due_date.toDate().toLocaleDateString('th-TH')}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col items-end gap-1">
+                                    <p className="text-sm text-muted-foreground">ยอดรวมทั้งสิ้น</p>
+                                    <p className="text-2xl font-bold text-primary">฿{invoice.total_amount.toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="text-sm space-y-1">
+                                    {invoice.items.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between">
+                                            <span className="text-muted-foreground">{item.name}</span>
+                                            <span>฿{item.amount.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex items-end justify-end">
+                                    {invoice.status === 'pending' && !invoice.payment_proof_url && (
+                                        <Button onClick={() => {
+                                            setSelectedInvoice(invoice);
+                                            setIsUploadOpen(true);
+                                            setSelectedFile(null);
+                                        }}>
+                                            <Upload className="mr-2 h-4 w-4" /> แจ้งโอนเงิน
+                                        </Button>
+                                    )}
+                                    {invoice.payment_proof_url && (
+                                        <Button variant="outline" onClick={() => window.open(invoice.payment_proof_url!, '_blank')}>
+                                            <FileText className="mr-2 h-4 w-4" /> ดูสลิปที่แนบ
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))
+            )}
         </div>
-    );
+
+        {/* Upload Slip Dialog */}
+        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>แจ้งโอนเงิน</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>ยอดโอน</Label>
+                        <Input value={`฿${selectedInvoice?.total_amount.toLocaleString()}`} disabled />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>แนบหลักฐานการโอนเงิน (รูปภาพ)</Label>
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            รองรับไฟล์รูปภาพ .jpg, .png
+                        </p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsUploadOpen(false)} disabled={uploading}>ยกเลิก</Button>
+                    <Button onClick={handleUploadSlip} disabled={!selectedFile || uploading}>
+                        {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {uploading ? 'กำลังอัปโหลด...' : 'ยืนยัน'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </div>
+);
 }
 
