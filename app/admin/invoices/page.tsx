@@ -52,6 +52,8 @@ export default function InvoicesPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isSlipDialogOpen, setIsSlipDialogOpen] = useState(false);
+    const [selectedSlipUrl, setSelectedSlipUrl] = useState('');
 
     // Invoice Generation Form State
     const [selectedRoomId, setSelectedRoomId] = useState('');
@@ -345,7 +347,7 @@ export default function InvoicesPage() {
                                                         <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> แจ้งชำระเงิน
                                                     </DropdownMenuItem>
                                                 )}
-                                                {invoice.status === 'paid' && invoice.payment_proof_url && (
+                                                {invoice.payment_proof_url && (
                                                     <DropdownMenuItem onClick={() => {
                                                         setSelectedSlipUrl(invoice.payment_proof_url!);
                                                         setIsSlipDialogOpen(true);
@@ -476,6 +478,22 @@ export default function InvoicesPage() {
                         <Button variant="outline" onClick={() => setIsDialogOpen(false)}>ยกเลิก</Button>
                         <Button onClick={handleCreateInvoice} disabled={!selectedRoomId}>สร้างบิล</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Slip Viewer Dialog */}
+            <Dialog open={isSlipDialogOpen} onOpenChange={setIsSlipDialogOpen}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>หลักฐานการโอนเงิน</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex justify-center p-4">
+                        <img
+                            src={selectedSlipUrl}
+                            alt="Payment Slip"
+                            className="max-w-full h-auto rounded-lg shadow-lg"
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
