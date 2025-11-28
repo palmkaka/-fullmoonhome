@@ -70,7 +70,9 @@ export default function DashboardPage() {
     const totalRooms = rooms.length;
     const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
     const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
-    const totalPendingAmount = pendingInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+    const totalPendingAmount = pendingInvoices
+        .filter(inv => rooms.some(r => r.room_number === inv.room_id))
+        .reduce((sum, inv) => sum + inv.total_amount, 0);
 
     const getStatusColor = (status: string) => {
         switch (status) {
