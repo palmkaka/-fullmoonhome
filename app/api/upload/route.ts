@@ -13,18 +13,8 @@ export async function POST(req: NextRequest) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
 
-        let bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-        if (!bucketName) {
-            return NextResponse.json({ error: 'Server Error: Storage bucket not configured' }, { status: 500 });
-        }
-
-        bucketName = bucketName.trim();
-        // Strip gs:// if present, as admin SDK expects just the name
-        if (bucketName.startsWith('gs://')) {
-            bucketName = bucketName.slice(5);
-        }
-
-        const bucket = adminStorage.bucket(bucketName);
+        // Use the default bucket configured in admin.ts
+        const bucket = adminStorage.bucket();
         const fileRef = bucket.file(path);
 
         await fileRef.save(buffer, {
