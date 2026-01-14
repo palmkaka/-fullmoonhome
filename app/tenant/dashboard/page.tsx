@@ -132,7 +132,7 @@ export default function TenantDashboard() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-bold tracking-tight">สวัสดี, {tenant.full_name}</h2>
-                <p className="text-muted-foreground">ยินดีต้อนรับสู่ Full Moon Hostel</p>
+                <p className="text-muted-foreground">ยินดีต้อนรับสู่ อรอนงค์แมนชั่น</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
