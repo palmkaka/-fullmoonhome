@@ -70,7 +70,7 @@ export default function LoginPage() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">เข้าสู่ระบบ</CardTitle>
                     <CardDescription className="text-center">
-                        ระบบจัดการหอพัก Full Moon Hostel
+                        ระบบจัดการหอพัก Full Moon Home
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

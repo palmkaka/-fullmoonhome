@@ -7,10 +7,15 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string)
     : {};
 
+const formatBucketName = (name: string | undefined) => {
+    if (!name) return undefined;
+    return name.replace(/^gs:\/\//, '').trim();
+};
+
 const app = !getApps().length
     ? initializeApp({
         credential: cert(serviceAccount),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        storageBucket: formatBucketName(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
     })
     : getApp();
 

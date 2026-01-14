@@ -26,6 +26,25 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
     const pathname = usePathname();
     const { user, dbUser, setUser, logout, isLoading, setLoading } = useUserStore();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [hostelName, setHostelName] = useState('หอพัก');
+
+    // Fetch hostel name from settings
+    useEffect(() => {
+        const fetchHostelName = async () => {
+            try {
+                const settingsDoc = await getDoc(doc(db, 'hostel_settings', 'config'));
+                if (settingsDoc.exists()) {
+                    const data = settingsDoc.data();
+                    if (data.name) {
+                        setHostelName(data.name);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching hostel name:", error);
+            }
+        };
+        fetchHostelName();
+    }, []);
 
     // Auth Check
     useEffect(() => {
@@ -90,9 +109,9 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
                         <div className="flex items-center">
                             <Link href="/tenant/dashboard" className="flex-shrink-0 flex items-center gap-2">
                                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold">
-                                    F
+                                    {hostelName.charAt(0)}
                                 </div>
-                                <span className="font-bold text-xl text-gray-900">Full Moon</span>
+                                <span className="font-bold text-xl text-gray-900">{hostelName}</span>
                             </Link>
                         </div>
 

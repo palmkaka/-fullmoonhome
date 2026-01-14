@@ -27,6 +27,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const { user, dbUser, setUser, logout, isLoading, setLoading } = useUserStore();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [hostelName, setHostelName] = useState('หอพัก');
+
+    // Fetch hostel name from settings
+    useEffect(() => {
+        const fetchHostelName = async () => {
+            try {
+                const settingsDoc = await getDoc(doc(db, 'hostel_settings', 'config'));
+                if (settingsDoc.exists()) {
+                    const data = settingsDoc.data();
+                    if (data.name) {
+                        setHostelName(data.name);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching hostel name:", error);
+            }
+        };
+        fetchHostelName();
+    }, []);
 
     // Auth Check
     useEffect(() => {
@@ -102,7 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}>
                 <div className="h-full flex flex-col">
                     <div className="p-6 border-b">
-                        <h1 className="text-xl font-bold text-primary">Full Moon Hostel</h1>
+                        <h1 className="text-xl font-bold text-primary">{hostelName}</h1>
                         <p className="text-sm text-gray-500">Admin Panel</p>
                     </div>
 
