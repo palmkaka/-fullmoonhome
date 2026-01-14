@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -18,8 +18,27 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [hostelName, setHostelName] = useState('');
     const router = useRouter();
     const setUser = useUserStore((state) => state.setUser);
+
+    // Fetch hostel name from settings
+    useEffect(() => {
+        const fetchHostelName = async () => {
+            try {
+                const settingsDoc = await getDoc(doc(db, 'hostel_settings', 'config'));
+                if (settingsDoc.exists()) {
+                    const data = settingsDoc.data();
+                    if (data.name) {
+                        setHostelName(data.name);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching hostel name:", error);
+            }
+        };
+        fetchHostelName();
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +89,7 @@ export default function LoginPage() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">เข้าสู่ระบบ</CardTitle>
                     <CardDescription className="text-center">
-                        ระบบจัดการหอพัก Full Moon Home
+                        ระบบจัดการหอพัก {hostelName}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
